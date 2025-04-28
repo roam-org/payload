@@ -75,17 +75,17 @@ export const handleEndpoints = async ({
   let req: PayloadRequest
   let collection: Collection
 
-  // This can be used against GET request search params size limit.
-  // Instead you can do POST request with a text body as search params.
-  // We use this interally for relationships querying on the frontend
-  // packages/ui/src/fields/Relationship/index.tsx
+  // POST requests with method override allow using the request body as search params for GET operations.
+  // This is used internally for relationships querying on the frontend (packages/ui/src/fields/Relationship).
+  const overrideHeader = request.headers.get('X-HTTP-Method-Override')
   if (
     request.method.toLowerCase() === 'post' &&
-    request.headers.get('X-HTTP-Method-Override') === 'GET'
+    overrideHeader &&
+    overrideHeader.toLowerCase() === 'get'
   ) {
     const search = await request.text()
-
-    const url = `${request.url}?${new URLSearchParams(search).toString()}`
+    const queryString = new URLSearchParams(search).toString()
+    const url = queryString ? `${request.url}?${queryString}` : request.url
     const response = await handleEndpoints({
       basePath,
       config: incomingConfig,
@@ -98,7 +98,6 @@ export const handleEndpoints = async ({
         signal: request.signal,
       }),
     })
-
     return response
   }
 
